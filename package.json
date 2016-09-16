@@ -1,0 +1,39 @@
+{
+  "name": "o2r-transportar",
+  "version": "1.0.0",
+  "description": "Node.js implementation of the `/api/v1/compendium/:id{.zip, .tar.gz` resource in the [o2r web api](http://o2r.info/o2r-web-api).",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "startlog": "DEBUG=* node index.js",
+    "debug": "DEBUG=* node debug index.js",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/o2r-project/o2r-transportar.git"
+  },
+  "author": "o2r project (http://o2r.info)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/o2r-project/o2r-transportar/issues"
+  },
+  "homepage": "https://github.com/o2r-project/o2r-transportar#readme",
+  "dependencies": {
+    "archiver": "^1.1.0",
+    "compression": "^1.6.2",
+    "connect-mongodb-session": "^1.1.1",
+    "debug": "^2.2.0",
+    "express": "^4.14.0",
+    "express-redirect": "^1.2.2",
+    "express-session": "^1.14.0",
+    "fs-extra": "^0.30.0",
+    "mongoose": "^4.5.5",
+    "passport": "^0.3.2"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.5.3",
+    "request": "^2.74.0"
+  }
+}
