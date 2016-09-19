@@ -19,9 +19,11 @@ var debug = require('debug')('transportar');
 var fs = require('fs');
 var Compendium = require('../lib/model/compendium');
 var archiver = require('archiver');
+var Timer = require('timer-machine')
 
 // based on https://github.com/archiverjs/node-archiver/blob/master/examples/express.js
 exports.downloadZip = (req, res) => {
+
   var path = req.params.path;
   debug(path);
   //var size = req.query.size || null;
@@ -34,6 +36,9 @@ exports.downloadZip = (req, res) => {
       res.status(404).send({ error: 'no compendium with this id' });
     } else {
       var localpath = config.fs.compendium + id;
+
+      var timer = new Timer();
+      timer.start();
 
       try {
         debug('Going to zip %s', localpath);
@@ -49,9 +54,9 @@ exports.downloadZip = (req, res) => {
           res.status(500).send({ error: err.message });
         });
 
-        //on stream closed we can end the request
         archive.on('end', function () {
-          debug('Archive wrote %d bytes', archive.pointer());
+          timer.stop();
+          debug('Archive wrote %d bytes in %s ms', archive.pointer(), timer.time());
         });
 
         //set the archive name
@@ -60,18 +65,8 @@ exports.downloadZip = (req, res) => {
         //this is the streaming magic
         archive.pipe(res);
 
+        // all all files
         archive.directory(localpath, '/');
-
-        //archive.glob('**/*', {
-        //  cwd: localpath 
-        //});
-
-        //archive.bulk([{
-        //  expand: true,
-        //  cwd: localpath,
-        //  src: ['**/*'],
-        //  dest: '/'
-        //}]);
 
         archive.finalize();
       } catch (e) {
@@ -79,6 +74,8 @@ exports.downloadZip = (req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.status(500).send({ error: 'internal error', e });
         return;
+      } finally {
+        timer.stop();
       }
     }
   });
@@ -102,6 +99,9 @@ exports.downloadTar = (req, res) => {
     } else {
       var localpath = config.fs.compendium + id;
 
+      var timer = new Timer();
+      timer.start();
+
       try {
         debug('Going to tar %s with gzip: %s', localpath, gzip);
         fs.accessSync(localpath); //throws if does not exist
@@ -119,7 +119,8 @@ exports.downloadTar = (req, res) => {
 
         //on stream closed we can end the request
         archive.on('end', function () {
-          debug('Archive wrote %d bytes', archive.pointer());
+          timer.stop();
+          debug('Archive wrote %d bytes in %s ms', archive.pointer(), timer.time());
         });
 
         //set the archive name
@@ -141,6 +142,8 @@ exports.downloadTar = (req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.status(500).send({ error: 'internal error', e });
         return;
+      } finally {
+        timer.stop();
       }
     }
   });

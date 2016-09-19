@@ -25,18 +25,20 @@ fse.mkdirsSync(config.fs.tmp);
 
 mongoose.connect(config.mongo.location + config.mongo.database);
 mongoose.connection.on('error', () => {
-  console.log('could not connect to mongodb on ' + config.mongo.location + config.mongo.collection +', ABORT');
+  console.log('could not connect to mongodb on ' + config.mongo.location + config.mongo.database +', ABORT');
   process.exit(2);
 });
 
 // Express modules and tools
 var express = require('express');
 var app = express();
+var responseTime = require('response-time')
 
 app.use((req, res, next) => {
   debug(req.method + ' ' + req.path);
   next();
 });
+app.use(responseTime())
 
 var url = require('url');
 
