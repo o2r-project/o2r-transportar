@@ -38,7 +38,7 @@ app.use((req, res, next) => {
   debug(req.method + ' ' + req.path);
   next();
 });
-app.use(responseTime())
+app.use(responseTime());
 
 var url = require('url');
 
