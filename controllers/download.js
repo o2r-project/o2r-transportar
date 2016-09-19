@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-// General modules
 var config = require('../config/config');
 var debug = require('debug')('transportar');
 var fs = require('fs');
@@ -41,7 +40,7 @@ exports.downloadZip = (req, res) => {
         fs.accessSync(localpath); //throws if does not exist
 
         var archive = archiver('zip', {
-          comment: 'Created by o2r [' + originalUrl + ']', 
+          comment: 'Created by o2r [' + originalUrl + ']',
           statConcurrency: config.download.defaults.statConcurrency
         });
 
@@ -63,10 +62,21 @@ exports.downloadZip = (req, res) => {
 
         archive.directory(localpath, '/');
 
+        //archive.glob('**/*', {
+        //  cwd: localpath 
+        //});
+
+        //archive.bulk([{
+        //  expand: true,
+        //  cwd: localpath,
+        //  src: ['**/*'],
+        //  dest: '/'
+        //}]);
+
         archive.finalize();
       } catch (e) {
         debug(e);
-        res.setHeader('Content-Type', 'application/json');  
+        res.setHeader('Content-Type', 'application/json');
         res.status(500).send({ error: 'internal error', e });
         return;
       }
@@ -81,7 +91,7 @@ exports.downloadTar = (req, res) => {
   //var size = req.query.size || null;
   var id = req.params.id;
   var gzip = false;
-  if(req.query.gzip !== undefined) {
+  if (req.query.gzip !== undefined) {
     gzip = true;
   }
 
@@ -114,7 +124,10 @@ exports.downloadTar = (req, res) => {
 
         //set the archive name
         var filename = id + '.tar';
-        if(gzip) filename = filename + '.gz';
+        if (gzip) {
+          filename = filename + '.gz';
+          //res.setHeader('Content-Type', 'application/gzip'); // archiver correctly sets to 'application/x-tar' if not gzipped
+        }
         res.attachment(filename);
 
         //this is the streaming magic
@@ -125,7 +138,7 @@ exports.downloadTar = (req, res) => {
         archive.finalize();
       } catch (e) {
         debug(e);
-        res.setHeader('Content-Type', 'application/json');  
+        res.setHeader('Content-Type', 'application/json');
         res.status(500).send({ error: 'internal error', e });
         return;
       }
