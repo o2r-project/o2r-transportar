@@ -41,13 +41,13 @@ app.use((req, res, next) => {
 });
 app.use(responseTime());
 
-var url = require('url');
+const url = require('url');
 
 // Passport & session modules for authenticating users.
-var User = require('./lib/model/user');
-var passport = require('passport');
-var session = require('express-session');
-var MongoDBStore = require('connect-mongodb-session')(session);
+const User = require('./lib/model/user');
+const passport = require('passport');
+const session = require('express-session');
+const MongoDBStore = require('connect-mongodb-session')(session);
 
 // load controllers
 var controllers = {};
@@ -79,11 +79,14 @@ function initApp(callback) {
     var mongoStore = new MongoDBStore({
       uri: config.mongo.location + config.mongo.database,
       collection: 'sessions'
+    }, err => {
+      if (err) {
+        debug('Error starting MongoStore: %s', err);
+      }
     });
 
-    mongoStore.on('error', (err) => {
-      debug('Error connecting with MongoStore: %s', err);
-      callback(err);
+    mongoStore.on('error', err => {
+      debug('Error with MongoStore: %s', err);
     });
 
     app.use(session({
@@ -129,9 +132,12 @@ function initApp(callback) {
     });
 
     app.listen(config.net.port, () => {
-      debug('transportar ' + config.version.major + '.' + config.version.minor + '.' +
-        config.version.bug + ' with api version ' + config.version.api +
-        ' waiting for requests on port ' + config.net.port);
+      debug('transportar %s.%s.%s with API version %s waiting for requests on port %s',
+        config.version.major,
+        config.version.minor,
+        config.version.bug,
+        config.version.api,
+        config.net.port);
     });
   } catch (err) {
     callback(err);
