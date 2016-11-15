@@ -23,7 +23,7 @@ var env = process.env;
 
 // Information about muncher
 c.version.major = 0;
-c.version.minor = 1;
+c.version.minor = 2;
 c.version.bug = 0;
 c.version.api = 1;
 
@@ -61,4 +61,10 @@ c.download.defaults = {};
 c.download.defaults.statConcurrency = 4; // archiver.js default is '4'
 c.download.defaults.tar = {};
 c.download.defaults.tar.gzipOptions = {}; // https://nodejs.org/api/zlib.html#zlib_class_options
+c.download.defaults.includeImage = true;
+
+c.bagtainer = {};
+c.bagtainer.imageNamePrefix = 'bagtainer:';
+c.bagtainer.imageTarballFile = 'data/dockerimage.tar';
+
 module.exports = c;

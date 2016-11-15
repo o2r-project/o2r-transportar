@@ -18,15 +18,65 @@ var config = require('../config/config');
 var debug = require('debug')('transportar');
 var fs = require('fs');
 var Compendium = require('../lib/model/compendium');
+var Job = require('../lib/model/job');
 var archiver = require('archiver');
-var Timer = require('timer-machine')
+var Timer = require('timer-machine');
+var Docker = require('dockerode');
+
+function addImage(archive, id, res, callback) {
+  var docker = new Docker();
+  debug('[%s] Docker client set up: %s', this.jobId, JSON.stringify(docker));
+
+  var filter = { compendium_id: id };
+  // include the image created for the compendium using the last updated job
+  // FIMXE need to filter for "overall success" jobs
+  Job.find(filter).select('id').limit(1).sort({ updatedAt: 'desc' }).exec((err, jobs) => {
+    if (err) {
+      res.status(500).send(JSON.stringify({ error: 'error finding last job for compendium' }));
+    } else {
+      if (jobs.length <= 0) {
+        debug('Error: No job for %s found, cannot add include image.', id);
+        res.status(500).send(JSON.stringify({ error: 'no job found for this compendium, run a job before downloading with image' }));
+      } else {
+        let job = jobs[0];
+        let imageTag = config.bagtainer.imageNamePrefix + job.id;
+        debug('Found latest job %s for compendium %s and will include image', job.id, id, imageTag);
+
+        let image = docker.getImage(imageTag);
+        debug('Found image: %s', image);
+        image.inspect((err, data) => {
+          if (err) {
+            debug('Error inspecting image: %s', err);
+          }
+          else {
+            debug('Image tags (a.k.a.s): %s', JSON.stringify(data.RepoTags));
+          }
+        });
+
+        image.get((err, stream) => {
+          if (err) {
+            debug('Error while handling image stream: %s', err.message);
+          }
+          else {
+            debug('Appending stream to archive: %s', stream);
+            archive.append(stream, { name: config.bagtainer.imageTarballFile, date: new Date() });
+            callback();
+          }
+        });
+      }
+    }
+  });
+}
 
 // based on https://github.com/archiverjs/node-archiver/blob/master/examples/express.js
 exports.downloadZip = (req, res) => {
 
   var path = req.params.path;
   debug(path);
-  //var size = req.query.size || null;
+  var includeImage = config.download.defaults.includeImage;
+  if(req.query.image) {
+    includeImage = (req.query.image === "true");
+  }
   var id = req.params.id;
   var originalUrl = req.protocol + '://' + req.hostname + req.path;
 
@@ -41,7 +91,7 @@ exports.downloadZip = (req, res) => {
       timer.start();
 
       try {
-        debug('Going to zip %s', localpath);
+        debug('Going to zip %s (image: %s)', localpath, includeImage);
         fs.accessSync(localpath); //throws if does not exist
 
         var archive = archiver('zip', {
@@ -68,7 +118,13 @@ exports.downloadZip = (req, res) => {
         // all all files
         archive.directory(localpath, '/');
 
-        archive.finalize();
+        if (includeImage) {
+          addImage(archive, id, res, () => {
+            archive.finalize();
+          });
+        } else {
+          archive.finalize();
+        }
       } catch (e) {
         debug(e);
         res.setHeader('Content-Type', 'application/json');
@@ -85,7 +141,10 @@ exports.downloadZip = (req, res) => {
 exports.downloadTar = (req, res) => {
   var path = req.params.path;
   debug(path);
-  //var size = req.query.size || null;
+  var includeImage = config.download.defaults.includeImage;
+  if(req.query.image) {
+    includeImage = (req.query.image === "true");
+  }
   var id = req.params.id;
   var gzip = false;
   if (req.query.gzip !== undefined) {
@@ -103,7 +162,7 @@ exports.downloadTar = (req, res) => {
       timer.start();
 
       try {
-        debug('Going to tar %s with gzip: %s', localpath, gzip);
+        debug('Going to tar %s (image: %s, gzip: %s)', localpath, includeImage, gzip);
         fs.accessSync(localpath); //throws if does not exist
 
         var archive = archiver('tar', {
@@ -136,7 +195,13 @@ exports.downloadTar = (req, res) => {
 
         archive.directory(localpath, '/');
 
-        archive.finalize();
+        if (includeImage) {
+          addImage(archive, id, res, () => {
+            archive.finalize();
+          });
+        } else {
+          archive.finalize();
+        }
       } catch (e) {
         debug(e);
         res.setHeader('Content-Type', 'application/json');

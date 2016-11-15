@@ -2,8 +2,8 @@
 const assert = require('chai').assert;
 const request = require('request');
 const fs = require('fs');
-var tmp = require('tmp');
-var AdmZip = require('adm-zip');
+const tmp = require('tmp');
+const AdmZip = require('adm-zip');
 
 const host = 'http://localhost';
 const cookie = 's:C0LIrsxGtHOGHld8Nv2jedjL4evGgEHo.GMsWD5Vveq0vBt7/4rGeoH5Xx7Dd2pgZR9DvhKCyDTY';
@@ -60,21 +60,21 @@ describe('ZIP downloader', function () {
 
     describe('Downlad compendium', function () {
         it('should respond with HTTP 200', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.zip', (err, res) => {
+            request(host + '/api/v1/compendium/' + compendium_id + '.zip?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.statusCode, 200);
                 done();
             });
         });
         it('content-type should be zip', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.zip', (err, res) => {
+            request(host + '/api/v1/compendium/' + compendium_id + '.zip?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.headers['content-type'], 'application/zip');
                 done();
             });
         });
         it('content disposition is set to file name attachment', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.zip', (err, res) => {
+            request(host + '/api/v1/compendium/' + compendium_id + '.zip?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.headers['content-disposition'], 'attachment; filename="' + compendium_id + '.zip"');
                 done();
@@ -82,7 +82,7 @@ describe('ZIP downloader', function () {
         });
         it('downloaded file is a zip (can be extracted, files exist)', (done) => {
             var tmpfile = tmp.tmpNameSync() + '.zip';
-            var url = host + '/api/v1/compendium/' + compendium_id + '.zip';
+            var url = host + '/api/v1/compendium/' + compendium_id + '.zip?image=false';
             request.get(url)
                 .on('error', function (err) {
                     done(err);
@@ -108,7 +108,7 @@ describe('ZIP downloader', function () {
         it('zip file comment is correct', (done) => {
             var tmpfile = tmp.tmpNameSync() + '.zip';
             var url = host + '/api/v1/compendium/' + compendium_id + '.zip';
-            request.get(url)
+            request.get(url + '?image=false') // parameters are not used in download URL
                 .on('error', function (err) {
                     done(err);
                 })

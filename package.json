@@ -1,6 +1,6 @@
 {
   "name": "o2r-transportar",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Node.js implementation of the `/api/v1/compendium/:id{.zip, .tar.gz` resource in the [o2r web api](http://o2r.info/o2r-web-api).",
   "main": "index.js",
   "scripts": {
@@ -25,11 +25,13 @@
     "compression": "^1.6.2",
     "connect-mongodb-session": "^1.1.1",
     "debug": "^2.2.0",
+    "dockerode": "^2.3.1",
     "express": "^4.14.0",
     "express-redirect": "^1.2.2",
     "express-session": "^1.14.0",
     "fs-extra": "^0.30.0",
     "mongoose": "^4.5.5",
+    "mongoose-timestamp": "^0.6.0",
     "passport": "^0.3.2",
     "response-time": "^2.3.1",
     "timer-machine": "^1.1.0"
@@ -40,6 +42,8 @@
     "mocha": "^2.5.3",
     "mongojs": "^2.4.0",
     "request": "^2.74.0",
+    "sleep": "^5.0.0",
+    "stream": "0.0.2",
     "sync-request": "^3.0.1",
     "tar": "^2.2.1",
     "tar.gz": "^1.0.5",
