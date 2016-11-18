@@ -7,6 +7,7 @@ Node.js implementation to package complete compendia for downloading, i.e. the [
 ## Requirements
 
 - Node.js (`>= 6.x`)
+- bagit-python (`bagit.py`)
 
 ## Configuration
 
