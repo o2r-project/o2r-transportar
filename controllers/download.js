@@ -36,7 +36,7 @@ function saveImage(outputStream, id, res, callback) {
       res.status(500).send(JSON.stringify({ error: 'error finding last job for compendium' }));
     } else {
       if (jobs.length <= 0) {
-        debug('Error: No job for %s found, cannot add include image.', id);
+        debug('Error: No job for %s found, cannot add image.', id);
         res.status(500).send(JSON.stringify({ error: 'no job found for this compendium, run a job before downloading with image' }));
       } else {
         let job = jobs[0];
@@ -44,7 +44,7 @@ function saveImage(outputStream, id, res, callback) {
         debug('Found latest job %s for compendium %s and will include image', job.id, id, imageTag);
 
         let image = docker.getImage(imageTag);
-        debug('Found image: %s', image);
+        debug('Found image: %s', JSON.stringify(image));
         image.inspect((err, data) => {
           if (err) {
             debug('Error inspecting image: %s', err);
@@ -54,19 +54,24 @@ function saveImage(outputStream, id, res, callback) {
           }
         });
 
+        debug('Getting image %s ...', image.Id);
         image.get((err, imageStream) => {
           if (err) {
             debug('Error while handling image stream: %s', err.message);
           }
           else {
-            debug('Saving image stream to provided stream: %s > %s', imageStream, outputStream);
+            debug('Saving image stream to provided stream: %s > %s', JSON.stringify(imageStream), JSON.stringify(outputStream));
             //archive.append(stream, { name: config.bagtainer.imageTarballFile, date: new Date() });
             imageStream.pipe(outputStream);
 
             outputStream.on('finish', function () {
-              debug('Image saved to file for %s', id);
-              callback();
+              debug('Image saved to provided stream for %s', id);
+              callback(null);
             });
+            outputStream.on('error', (err) => {
+              debug('Error saving image to provided stream: %s', err);
+              callback(err);
+            })
           }
         });
       }
@@ -75,11 +80,13 @@ function saveImage(outputStream, id, res, callback) {
 }
 
 function imageTarballFileExists(bagtainerPath) {
+  let p = path.join(bagtainerPath, config.bagtainer.imageTarballFile);
   try {
-    fs.accessSync(path.join(bagtainerPath, config.bagtainer.imageTarballFile));
+    fs.accessSync(p);
+    debug('Tarball file for already exists at %s', p);
     return true;
   } catch (err) {
-    debug('Tarball file for %s does not exist (or other file system error): %s', bagtainerPath, err);
+    debug('Tarball file at %s does not exist (or other file system error): %s', p, err);
     return false;
   }
 }
@@ -88,7 +95,7 @@ function archiveBagtainer(archive, bagtainerPath, ignoreImage) {
   var glob = '**';
   let options = {};
   options.cwd = bagtainerPath;
-  if(ignoreImage) {
+  if (ignoreImage) {
     options.ignore = [config.bagtainer.imageTarballFile];
   }
 
@@ -148,7 +155,14 @@ exports.downloadZip = (req, res) => {
             // this breaks the streaming magic, but simplest way to update bag is to save the tarball as a file
             var stream = fs.createWriteStream(path.join(localpath, config.bagtainer.imageTarballFile));
 
-            saveImage(stream, id, res, () => {
+            saveImage(stream, id, res, (err) => {
+              if(err) {
+                debug('Error saving image for %s: %s', id, JSON.stringify(err));
+                res.status(500).send({ error: 'internal error', err: err });
+                return;
+              }
+              debug('Image saved for %s', id);
+
               if (!res.headersSent) {
                 archiveBagtainer(archive, localpath, false);
               } else {
@@ -164,7 +178,7 @@ exports.downloadZip = (req, res) => {
       } catch (e) {
         debug(e);
         res.setHeader('Content-Type', 'application/json');
-        res.status(500).send({ error: 'internal error', e });
+        res.status(500).send({ error: 'internal error', e: e });
         return;
       } finally {
         timer.stop();
@@ -234,7 +248,14 @@ exports.downloadTar = (req, res) => {
             // this breaks the streaming magic, but simplest way to update bag is to save the tarball as a file
             var stream = fs.createWriteStream(path.join(localpath, config.bagtainer.imageTarballFile));
 
-            saveImage(stream, id, res, () => {
+            saveImage(stream, id, res, (err) => {
+              if(err) {
+                debug('Error saving image for %s: %s', id, JSON.stringify(err));
+                res.status(500).send({ error: 'internal error', err: err });
+                return;
+              }
+              debug('Image saved for %s', id);
+
               if (!res.headersSent) {
                 archiveBagtainer(archive, localpath, false);
               } else {
@@ -250,7 +271,7 @@ exports.downloadTar = (req, res) => {
       } catch (e) {
         debug(e);
         res.setHeader('Content-Type', 'application/json');
-        res.status(500).send({ error: 'internal error', e });
+        res.status(500).send({ error: 'internal error', e: e });
         return;
       } finally {
         timer.stop();
