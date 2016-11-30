@@ -1,6 +1,6 @@
 {
   "name": "o2r-transportar",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Node.js implementation of the `/api/v1/compendium/:id{.zip, .tar.gz` resource in the [o2r web api](http://o2r.info/o2r-web-api).",
   "main": "index.js",
   "scripts": {
