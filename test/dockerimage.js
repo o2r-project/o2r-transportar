@@ -16,7 +16,7 @@ const cookie = 's:C0LIrsxGtHOGHld8Nv2jedjL4evGgEHo.GMsWD5Vveq0vBt7/4rGeoH5Xx7Dd2
 
 var compendium_id = null;
 
-describe.only('Image download', function () {
+describe('Image download', function () {
     //before(function () {
     // running this in a before function means that the request is not done before actual tests get called
     describe('POST new compendium and remember ID', function () {
@@ -39,7 +39,7 @@ describe.only('Image download', function () {
                 method: 'POST',
                 jar: j,
                 formData: formData,
-                timeout: 1000
+                timeout: 10000
             }, (err, res, body) => {
                 assert.ifError(err);
                 compendium_id = JSON.parse(body).id;
@@ -47,7 +47,7 @@ describe.only('Image download', function () {
                 done();
             });
         });
-    });
+    }).timeout(10000);
 
     describe('POST a new job for the new compendium and wait a bit so that there is an image to download', function () {
         it('Should respond without error', (done) => {
@@ -63,17 +63,18 @@ describe.only('Image download', function () {
                 method: 'POST',
                 jar: j,
                 formData: formData,
-                timeout: 1000
+                timeout: 10000
             }, (err, res, body) => {
                 assert.ifError(err);
                 assert.ok(JSON.parse(body).job_id);
                 done();
             });
         });
-    });
+    }).timeout(10000);
 
-    describe('Compendium download', function () {
-        let secs = 10;
+    let secs = 10;
+
+    describe('compendium download', function () {
         it('waits ' + secs + 'seconds for the job to finish...', (done) => {
             sleep.sleep(secs);
             done();
@@ -228,53 +229,6 @@ describe.only('Image download', function () {
                 .pipe(parser);
         }).timeout(secs * 1000);
 
-        it('is a valid Bag with image', (done) => {
-            var tmpfile = tmp.tmpNameSync() + '.zip';
-            var tmpdir = tmp.dirSync().name;
-            var url = host + '/api/v1/compendium/' + compendium_id + '.zip?image=true';
-            request.get(url)
-                .on('error', function (err) {
-                    done(err);
-                })
-                .pipe(fs.createWriteStream(tmpfile))
-                .on('finish', function () {
-                    var zip = new AdmZip(tmpfile);
-                    zip.extractAllTo(tmpdir, false);
-
-                    this.bag = new Bag(tmpdir);
-                    this.bag
-                        .validate()
-                        .then(res => {
-                            done(res);
-                        }).catch(err => {
-                            done(err);
-                        });
-                });
-        }).timeout(secs * 1000);
-        it('is a valid Bag _without_ image', (done) => {
-            var tmpfile = tmp.tmpNameSync() + '.zip';
-            var tmpdir = tmp.dirSync().name;
-            var url = host + '/api/v1/compendium/' + compendium_id + '.zip?image=false';
-            request.get(url)
-                .on('error', function (err) {
-                    done(err);
-                })
-                .pipe(fs.createWriteStream(tmpfile))
-                .on('finish', function () {
-                    var zip = new AdmZip(tmpfile);
-                    zip.extractAllTo(tmpdir, false);
-
-                    this.bag = new Bag(tmpdir);
-                    this.bag
-                        .validate()
-                        .then(res => {
-                            done(res);
-                        }).catch(err => {
-                            done(err);
-                        });
-                });
-        }).timeout(secs * 1000);
-
         it('contains image tarball which has expected files', (done) => {
             var tmpfile = tmp.tmpNameSync() + '.zip';
             var url = host + '/api/v1/compendium/' + compendium_id + '.zip';
@@ -318,5 +272,58 @@ describe.only('Image download', function () {
                     });
                 });
         });
+    });
+
+    describe('compendium download with validation _without_ image', function () {
+        it('is a valid Bag', (done) => {
+            var tmpfile = tmp.tmpNameSync() + '.zip';
+            var tmpdir = tmp.dirSync().name;
+            var url = host + '/api/v1/compendium/' + compendium_id + '.zip?image=false';
+            request.get(url)
+                .on('error', function (err) {
+                    done(err);
+                })
+                .pipe(fs.createWriteStream(tmpfile))
+                .on('finish', function () {
+                    var zip = new AdmZip(tmpfile);
+                    zip.extractAllTo(tmpdir, false);
+
+                    this.bag = new Bag(tmpdir);
+                    this.bag
+                        .validate()
+                        .then(res => {
+                            done(res);
+                        }).catch(err => {
+                            done(err);
+                        });
+                });
+        }).timeout(secs * 1000);
+    });
+
+    describe.skip('compendium download with validation _with_ image', function () {
+        it('is a valid Bag', (done) => {
+            var tmpfile = tmp.tmpNameSync() + '.zip';
+            var tmpdir = tmp.dirSync().name;
+            var url = host + '/api/v1/compendium/' + compendium_id + '.zip?image=true';
+            request.get(url)
+                .on('error', function (err) {
+                    done(err);
+                })
+                .pipe(fs.createWriteStream(tmpfile))
+                .on('finish', function () {
+                    var zip = new AdmZip(tmpfile);
+                    zip.extractAllTo(tmpdir, false);
+
+                    this.bag = new Bag(tmpdir);
+                    this.bag
+                        .validate()
+                        .then(res => {
+                            done(res);
+                        }).catch(err => {
+                            done(err);
+                        });
+                });
+        }).timeout(secs * 1000);
+
     });
 });

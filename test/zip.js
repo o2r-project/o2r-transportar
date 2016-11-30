@@ -18,7 +18,7 @@ describe('ZIP downloader', function () {
             let formData = {
                 'content_type': 'compendium_v1',
                 'compendium': {
-                    value: fs.createReadStream('./test/compendium01.zip'),
+                    value: fs.createReadStream('./test/step_validate_compendium.zip'),
                     options: {
                         contentType: 'application/zip'
                     }
@@ -33,14 +33,14 @@ describe('ZIP downloader', function () {
                 method: 'POST',
                 jar: j,
                 formData: formData,
-                timeout: 1000
+                timeout: 10000
             }, (err, res, body) => {
                 assert.ifError(err);
                 compendium_id = JSON.parse(body).id;
                 done();
             });
         });
-    });
+    }).timeout(10000);
 
     describe('GET non-existing compendium', function () {
         it('should respond with HTTP 404 error', (done) => {
@@ -96,12 +96,8 @@ describe('ZIP downloader', function () {
                     zipEntries.forEach(function (entry) {
                         filenames.push(entry.entryName);
                     });
-                    assert.oneOf('data/Bagtainer.R', filenames);
-                    assert.oneOf('data/Bagtainer.yml', filenames);
-                    assert.oneOf('data/container/Dockerfile', filenames);
-                    assert.oneOf('data/container/apt-installed.txt', filenames);
-                    assert.oneOf('data/container/dpkg-list.txt', filenames);
-                    assert.oneOf('data/wd/meteo.RData', filenames);
+                    assert.oneOf('data/test.txt', filenames);
+                    assert.oneOf('data/bagtainer.yml', filenames);
                     done();
                 });
         });

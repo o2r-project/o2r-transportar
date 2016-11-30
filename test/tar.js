@@ -19,7 +19,7 @@ describe('TAR downloader', function() {
             let formData = {
                 'content_type': 'compendium_v1',
                 'compendium': {
-                    value: fs.createReadStream('./test/compendium01.zip'),
+                    value: fs.createReadStream('./test/step_validate_compendium.zip'),
                     options: {
                         contentType: 'application/zip'
                     }
@@ -34,43 +34,14 @@ describe('TAR downloader', function() {
                 method: 'POST',
                 jar: j,
                 formData: formData,
-                timeout: 1000
+                timeout: 10000
             }, (err, res, body) => {
                 assert.ifError(err);
                 compendium_id = JSON.parse(body).id;
                 done();
             });
         });
-    });
-
-    describe('GET non-existing compendium', function() {
-        it('should respond with HTTP 404 error at .tar', (done) => {
-            request(host + '/api/v1/compendium/1234.tar', (err, res, body) => {
-                assert.ifError(err);
-                assert.equal(res.statusCode, 404);
-                done();
-            });
-        });
-        it('should respond with HTTP 404 error at tar.gz', (done) => {
-            request(host + '/api/v1/compendium/1234.tar.gz', (err, res, body) => {
-                assert.ifError(err);
-                assert.equal(res.statusCode, 404);
-                done();
-            });
-        });
-        it('should mention "no compendium" in the error message at .tar', (done) => {
-            request(host + '/api/v1/compendium/1234.tar', (err, res, body) => {
-                assert.include(JSON.parse(body).error, 'no compendium');
-                done();
-            });
-            it('should mention "no compendium" in the error message at .tar.gz', (done) => {
-                request(host + '/api/v1/compendium/1234.tar.gz', (err, res, body) => {
-                    assert.include(JSON.parse(body).error, 'no compendium');
-                    done();
-                });
-            });
-        });
-    });
+    }).timeout(10000);
 
     describe('Downlad compendium using .tar', function() {
         it('should respond with HTTP 200', (done) => {
@@ -114,14 +85,9 @@ describe('TAR downloader', function() {
                             assert.oneOf('data', filenames);
 
                             filenames = fs.readdirSync(tmpdir + '/data');
-                            assert.oneOf('Bagtainer.yml', filenames);
-                            assert.oneOf('Bagtainer.R', filenames);
-                            assert.oneOf('wd', filenames);
+                            assert.oneOf('bagtainer.yml', filenames);
+                            assert.oneOf('test.txt', filenames);
 
-                            filenames = fs.readdirSync(tmpdir + '/data/container');
-                            assert.oneOf('Dockerfile', filenames);
-                            assert.oneOf('apt-installed.txt', filenames);
-                            assert.oneOf('dpkg-list.txt', filenames);
                             done();
                         });
 
@@ -172,12 +138,8 @@ describe('TAR downloader', function() {
                 filenames.push(entry.path);
             });
             parser.on('end', function() {
-                assert.oneOf('data/Bagtainer.yml', filenames);
-                assert.oneOf('data/Bagtainer.R', filenames);
-                assert.oneOf('data/wd/lab02-solution.Rmd', filenames);
-                assert.oneOf('data/container/Dockerfile', filenames);
-                assert.oneOf('data/container/apt-installed.txt', filenames);
-                assert.oneOf('data/container/dpkg-list.txt', filenames);
+                assert.oneOf('data/bagtainer.yml', filenames);
+                assert.oneOf('data/test.txt', filenames);
                 done();
             });
 
