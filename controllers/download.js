@@ -39,54 +39,63 @@ function saveImage(outputStream, id, res, callback) {
         debug('Error: No job for %s found, cannot add image.', id);
         res.status(500).send(JSON.stringify({ error: 'no job found for this compendium, run a job before downloading with image' }));
       } else {
+        // image creation steps as promises
+        let inspect = (passon) => {
+          return new Promise((fulfill, reject) => {
+            passon.image.inspect((err, data) => {
+              if (err) {
+                debug('Error inspecting image: %s', err);
+                reject(err);
+              }
+              else {
+                debug('Image tags (a.k.a.s): %s', JSON.stringify(data.RepoTags));
+                fulfill(passon);
+              }
+            });
+          })
+        };
+        let getandsave = (passon) => {
+          return new Promise((fulfill, reject) => {
+            debug('Getting image %s ...', JSON.stringify(passon.image));
+            passon.image.get((err, imageStream) => {
+              if (err) {
+                debug('Error while handling image stream: %s', err.message);
+                reject(err);
+              }
+              else {
+                debug('Saving image stream to provided stream: %s > %s', imageStream, passon.outputStream);
+                //archive.append(stream, { name: config.bagtainer.imageTarballFile, date: new Date() });
+                imageStream.pipe(passon.outputStream);
+
+                passon.outputStream.on('finish', function () {
+                  debug('Image saved to provided stream for %s', passon.id);
+                  fulfill(passon);
+                });
+                passon.outputStream.on('error', (err) => {
+                  debug('Error saving image to provided stream: %s', err);
+                  reject(err);
+                })
+              }
+            });
+          })
+        };
+        let answer = (passon) => {
+          return new Promise((fulfill) => {
+            debug('Answering callback for compendium %s with image %s', passon.id, passon.image.name);
+            callback();
+            fulfill(passon);
+          })
+        };
+
         let job = jobs[0];
         let imageTag = config.bagtainer.imageNamePrefix + job.id;
         debug('Found latest job %s for compendium %s and will include image %s', job.id, id, imageTag);
-
         let image = docker.getImage(imageTag);
         debug('Found image: %s', image.name);
 
-        let inspect = new Promise((fulfill, reject) => {
-          image.inspect((err, data) => {
-            if (err) {
-              debug('Error inspecting image: %s', err);
-              reject(err);
-            }
-            else {
-              debug('Image tags (a.k.a.s): %s', JSON.stringify(data.RepoTags));
-              fulfill();
-            }
-          });
-        });
-        let getandsave = new Promise((fulfill, reject) => {
-          debug('Getting image %s ...', JSON.stringify(image));
-          image.get((err, imageStream) => {
-            if (err) {
-              debug('Error while handling image stream: %s', err.message);
-              reject(err);
-            }
-            else {
-              debug('Saving image stream to provided stream: %s > %s', imageStream, outputStream);
-              //archive.append(stream, { name: config.bagtainer.imageTarballFile, date: new Date() });
-              imageStream.pipe(outputStream);
-
-              outputStream.on('finish', function () {
-                debug('Image saved to provided stream for %s', id);
-                fulfill();
-              });
-              outputStream.on('error', (err) => {
-                debug('Error saving image to provided stream: %s', err);
-                reject(err);
-              })
-            }
-          });
-        });
-
-        inspect
+        inspect({ image: image, outputStream: outputStream, id: id })
           .then(getandsave)
-          .then(() => {
-            callback(null);
-          })
+          .then(answer)
           .catch(err => {
             debug("Rejection or unhandled failure while saving image %s to file: \n\t%s", image.name, JSON.stringify(err));
             callback(err);
