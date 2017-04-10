@@ -22,10 +22,8 @@ c.fs = {};
 var env = process.env;
 
 // Information about muncher
-c.version.major = 0;
-c.version.minor = 2;
-c.version.bug = 2;
-c.version.api = 1;
+c.api_version = 1;
+c.version = require('../package.json').version;
 
 // network & database
 c.net.port = env.TRANSPORTAR_PORT || 8086;

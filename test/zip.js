@@ -1,57 +1,59 @@
+/*
+ * (C) Copyright 2017 o2r project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 /* eslint-env mocha */
 const assert = require('chai').assert;
 const request = require('request');
 const fs = require('fs');
 const tmp = require('tmp');
 const AdmZip = require('adm-zip');
+const createCompendiumPostRequest = require('./util').createCompendiumPostRequest;
 
-const host = 'http://localhost';
+require("./setup")
 const cookie = 's:C0LIrsxGtHOGHld8Nv2jedjL4evGgEHo.GMsWD5Vveq0vBt7/4rGeoH5Xx7Dd2pgZR9DvhKCyDTY';
 
-var compendium_id = null;
 
 describe('ZIP downloader', function () {
-    //before(function () {
-    // running this in a before function means that the request is not done before actual tests get called
-    describe('POST new compendium and remember ID', function () {
-        it('Should respond without error and ID in response body', (done) => {
-            let formData = {
-                'content_type': 'compendium_v1',
-                'compendium': {
-                    value: fs.createReadStream('./test/step_validate_compendium.zip'),
-                    options: {
-                        contentType: 'application/zip'
-                    }
-                }
-            };
-            let j = request.jar();
-            let ck = request.cookie('connect.sid=' + cookie);
-            j.setCookie(ck, host);
+    var compendium_id = null;
+    before(function (done) {
+        this.timeout(20000);
 
-            request({
-                uri: host + '/api/v1/compendium',
-                method: 'POST',
-                jar: j,
-                formData: formData,
-                timeout: 10000
-            }, (err, res, body) => {
-                assert.ifError(err);
-                compendium_id = JSON.parse(body).id;
-                done();
-            });
+        let req = createCompendiumPostRequest('./test/step_validate_compendium', cookie);
+
+        request(req, (err, res, body) => {
+            console.log(err);
+            console.log(body);
+            compendium_id = JSON.parse(body).id;
+
+            console.log('\tTesting using compendium ' + compendium_id);
+            done();
         });
-    }).timeout(10000);
+    });
 
     describe('GET non-existing compendium', function () {
         it('should respond with HTTP 404 error', (done) => {
-            request(host + '/api/v1/compendium/1234.zip', (err, res, body) => {
+            request(global.test_host + '/api/v1/compendium/1234.zip', (err, res, body) => {
                 assert.ifError(err);
                 assert.equal(res.statusCode, 404);
                 done();
             });
         });
         it('should mention "no compendium" in the error message', (done) => {
-            request(host + '/api/v1/compendium/1234.zip', (err, res, body) => {
+            request(global.test_host + '/api/v1/compendium/1234.zip', (err, res, body) => {
                 assert.include(JSON.parse(body).error, 'no compendium');
                 done();
             });
@@ -60,21 +62,21 @@ describe('ZIP downloader', function () {
 
     describe('Downlad compendium', function () {
         it('should respond with HTTP 200', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.zip?image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.zip?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.statusCode, 200);
                 done();
             });
         });
         it('content-type should be zip', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.zip?image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.zip?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.headers['content-type'], 'application/zip');
                 done();
             });
         });
         it('content disposition is set to file name attachment', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.zip?image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.zip?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.headers['content-disposition'], 'attachment; filename="' + compendium_id + '.zip"');
                 done();
@@ -82,7 +84,7 @@ describe('ZIP downloader', function () {
         });
         it('downloaded file is a zip (can be extracted, files exist)', (done) => {
             var tmpfile = tmp.tmpNameSync() + '.zip';
-            var url = host + '/api/v1/compendium/' + compendium_id + '.zip?image=false';
+            var url = global.test_host + '/api/v1/compendium/' + compendium_id + '.zip?image=false';
             request.get(url)
                 .on('error', function (err) {
                     done(err);
@@ -103,7 +105,8 @@ describe('ZIP downloader', function () {
         });
         it('zip file comment is correct', (done) => {
             var tmpfile = tmp.tmpNameSync() + '.zip';
-            var url = host + '/api/v1/compendium/' + compendium_id + '.zip';
+            var url_path = '/api/v1/compendium/' + compendium_id + '.zip';
+            var url = global.test_host + url_path;
             request.get(url + '?image=false') // parameters are not used in download URL
                 .on('error', function (err) {
                     done(err);
@@ -112,7 +115,8 @@ describe('ZIP downloader', function () {
                 .on('finish', function () {
                     var zip = new AdmZip(tmpfile);
 
-                    assert.equal(zip.getZipComment(), 'Created by o2r [' + url + ']');
+                    assert.include(zip.getZipComment(), 'Created by o2r [');
+                    assert.include(zip.getZipComment(), url_path);
                     done();
                 });
         });

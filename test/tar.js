@@ -1,3 +1,20 @@
+/*
+ * (C) Copyright 2017 o2r project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 /* eslint-env mocha */
 const assert = require('chai').assert;
 const request = require('request');
@@ -5,61 +22,44 @@ const fs = require('fs');
 const tmp = require('tmp');
 const tar = require('tar');
 const targz = require('tar.gz');
+const createCompendiumPostRequest = require('./util').createCompendiumPostRequest;
 
-const host = 'http://localhost';
+require("./setup")
 const cookie = 's:C0LIrsxGtHOGHld8Nv2jedjL4evGgEHo.GMsWD5Vveq0vBt7/4rGeoH5Xx7Dd2pgZR9DvhKCyDTY';
 
-var compendium_id = null;
 
 describe('TAR downloader', function() {
-    //before(function () {
-    // running this in a before function means that the request is not done before actual tests get called
-    describe('POST new compendium and remember ID', function() {
-        it('Should respond without error and ID in response body', (done) => {
-            let formData = {
-                'content_type': 'compendium_v1',
-                'compendium': {
-                    value: fs.createReadStream('./test/step_validate_compendium.zip'),
-                    options: {
-                        contentType: 'application/zip'
-                    }
-                }
-            };
-            let j = request.jar();
-            let ck = request.cookie('connect.sid=' + cookie);
-            j.setCookie(ck, host);
+    var compendium_id = null;
+    before(function (done) {
+        this.timeout(20000);
 
-            request({
-                uri: host + '/api/v1/compendium',
-                method: 'POST',
-                jar: j,
-                formData: formData,
-                timeout: 10000
-            }, (err, res, body) => {
-                assert.ifError(err);
-                compendium_id = JSON.parse(body).id;
-                done();
-            });
+        let req = createCompendiumPostRequest('./test/step_validate_compendium', cookie);
+
+        request(req, (err, res, body) => {
+            compendium_id = JSON.parse(body).id;
+
+            console.log('\tTesting using compendium ' + compendium_id);
+            done();
         });
-    }).timeout(10000);
+    });
 
     describe('Downlad compendium using .tar', function() {
         it('should respond with HTTP 200', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.tar?image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.tar?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.statusCode, 200);
                 done();
             });
         });
         it('content-type should be tar', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.tar?image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.tar?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.headers['content-type'], 'application/x-tar');
                 done();
             });
         });
         it('content disposition is set to file name attachment', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.tar?image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.tar?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.headers['content-disposition'], 'attachment; filename="' + compendium_id + '.tar"');
                 done();
@@ -68,7 +68,7 @@ describe('TAR downloader', function() {
         it('downloadeded file is a tar archive (can be extracted, files exist)', (done) => {
             var tmpfile = tmp.tmpNameSync() + '.tar';
             var tmpdir = tmp.dirSync().name;
-            var url = host + '/api/v1/compendium/' + compendium_id + '.tar?image=false';
+            var url = global.test_host + '/api/v1/compendium/' + compendium_id + '.tar?image=false';
 
             request.get(url)
                 .on('error', function(err) {
@@ -102,35 +102,35 @@ describe('TAR downloader', function() {
 
     describe('Downlad compendium using .tar with gzip', function() {
         it('should respond with HTTP 200 for .gz', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.tar.gz?image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.tar.gz?image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.statusCode, 200);
                 done();
             });
         });
         it('should respond with HTTP 200 for ?gzip', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.tar?gzip&image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.tar?gzip&image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.statusCode, 200);
                 done();
             });
         });
         it('content-type should be tar gz', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.tar?gzip&image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.tar?gzip&image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.headers['content-type'], 'application/octet-stream');
                 done();
             });
         });
         it('content disposition is set to file name attachment', (done) => {
-            request(host + '/api/v1/compendium/' + compendium_id + '.tar?gzip&image=false', (err, res) => {
+            request(global.test_host + '/api/v1/compendium/' + compendium_id + '.tar?gzip&image=false', (err, res) => {
                 assert.ifError(err);
                 assert.equal(res.headers['content-disposition'], 'attachment; filename="' + compendium_id + '.tar.gz"');
                 done();
             });
         });
         it('downloaded file is a gzipped tar archive (can be extracted, files exist)', (done) => {
-            var url = host + '/api/v1/compendium/' + compendium_id + '.tar?gzip&image=false';
+            var url = global.test_host + '/api/v1/compendium/' + compendium_id + '.tar?gzip&image=false';
 
             var filenames = [];
             var parser = targz().createParseStream();

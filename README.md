@@ -50,7 +50,16 @@ Direct the log into a file using `DEBUG=* npm start > log.txt`.
 
 ## Test
 
-TBD
+```bash
+# start a MongoDB
+# start a muncher
+# start a loader
+
+npm test
+
+# you can also run the tests towards a manually specified host and enable prototypical containers for muncher and loader
+HELPER_CONTAINERS=y TEST_HOST=http://localhost npm test
+```
 
 ## Dockerfile
 

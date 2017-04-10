@@ -132,11 +132,9 @@ function initApp(callback) {
     });
 
     app.listen(config.net.port, () => {
-      debug('transportar %s.%s.%s with API version %s waiting for requests on port %s',
-        config.version.major,
-        config.version.minor,
-        config.version.bug,
-        config.version.api,
+      debug('transportar %s with API version %s waiting for requests on port %s',
+        config.version,
+        config.api_version,
         config.net.port);
     });
   } catch (err) {
