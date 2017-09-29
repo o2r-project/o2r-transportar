@@ -1,4 +1,4 @@
-# o2r-transportar
+# o2r-transportar __DEPRECATED__ [o2r-transporter](https://github.com/o2r-project/o2r-transporter)
 
 ![Travis CI](https://api.travis-ci.org/o2r-project/o2r-transportar.svg)
 
